@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Meme Generator 🚀</title>
+    <link href="https://fonts.googleapis.com/css2?family=Impact&family=Arial&family=Comic+Sans+MS&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .author-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .author-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            display: block;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        canvas:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+            color: #555;
+        }
+        input[type="text"], input[type="range"], select, input[type="color"], input[type="file"] {
+            margin-top: 5px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .download-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .download-preview {
+            max-width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px auto;
+            display: none;
+        }
+        .alert {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            display: none;
+        }
+        .instructions {
+            background: #e3f2fd;
+            color: #0d47a1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Image to Meme Generator</h1>
+    <p>Upload a local image or enter a URL, add text, customize, and download! Built by <a href="https://x.com/JvShah124" target="_blank" class="author-link">Jv Shah</a> – Runs fully in your browser with Hugging Face AI. Double-click text on image to edit directly!</p>
+
+    <div id="alert" class="alert"></div>
+    <div id="success" class="success"></div>
+
+    <!-- Local File Upload -->
+    <input type="file" id="fileInput" accept="image/*" style="display: block; margin: 10px auto; max-width: 300px;">
+    <button onclick="loadFromFile()" style="display: block; margin: 10px auto;">Upload Local Image</button>
+
+    <!-- URL Input -->
+    <input type="text" id="imageUrl" placeholder="Image URL" style="width: 100%; max-width: 600px; margin: 20px auto 10px; display: block;">
+    <button onclick="loadFromUrl()" style="display: block; margin: 10px auto;">Load Image from URL</button>
+
+    <div class="controls">
+        <label>Top Text: <input type="text" id="topText" value="Top Text" oninput="drawMeme()"></label>
+        <label>Bottom Text: <input type="text" id="bottomText" value="Bottom Text" oninput="drawMeme()"></label>
+        
+        <label>Top Font Size: <input type="range" id="topFontSize" min="10" max="100" value="40" oninput="drawMeme()"></label>
+        <label>Bottom Font Size: <input type="range" id="bottomFontSize" min="10" max="100" value="40" oninput="drawMeme()"></label>
+        
+        <label>Font: 
+            <select id="fontFamily" oninput="drawMeme()">
+                <option value="Impact">Impact (Classic Meme)</option>
+                <option value="Arial">Arial</option>
+                <option value="Comic Sans MS">Comic Sans</option>
+            </select>
+        </label>
+        
+        <label>Top Text Color: <input type="color" id="topTextColor" value="#FFFFFF" oninput="drawMeme()"></label>
+        <label>Top Outline Color: <input type="color" id="topOutlineColor" value="#000000" oninput="drawMeme()"></label>
+        
+        <label>Bottom Text Color: <input type="color" id="bottomTextColor" value="#FFFFFF" oninput="drawMeme()"></label>
+        <label>Bottom Outline Color: <input type="color" id="bottomOutlineColor" value="#000000" oninput="drawMeme()"></label>
+        
+        <label>Top X Offset: <input type="range" id="topX" min="-200" max="200" value="0" oninput="drawMeme()"></label>
+        <label>Top Y Offset: <input type="range" id="topY" min="0" max="200" value="10" oninput="drawMeme()"></label>
+        
+        <label>Bottom X Offset: <input type="range" id="bottomX" min="-200" max="200" value="0" oninput="drawMeme()"></label>
+        <label>Bottom Y Offset: <input type="range" id="bottomY" min="-100" max="100" value="0" oninput="drawMeme()"></label>
+    </div>
+
+    <div style="position: relative; text-align: center;">
+        <canvas id="memeCanvas" width="400" height="300"></canvas>
+    </div>
+    
+    <div class="button-group">
+        <button onclick="suggestText()">AI Suggest Meme Text</button>
+    </div>
+    
+    <!-- Download Section -->
+    <div class="download-section">
+        <h3>Download Your Meme</h3>
+        <div class="instructions">
+            <strong>📱 Mobile/Tablet Users:</strong> Long press the image below and select "Save Image" or "Download Image"<br>
+            <strong>💻 Desktop Users:</strong> Right-click the image below and select "Save Image As..." or try the download button
+        </div>
+        
+        <img id="downloadPreview" class="download-preview" alt="Your meme will appear here">
+        <br>
+        <button onclick="generateDownloadImage()" style="margin: 10px;">🖼️ Generate Download Image</button>
+        <button onclick="forceDownload()" style="margin: 10px;">⬇️ Force Download</button>
+        <button onclick="openFullscreen()" style="margin: 10px;">🔍 View Fullscreen</button>
+    </div>
+    
+    <p id="suggestion" style="text-align: center; color: #888; margin-top: 10px;"></p>
+
+    <script>
+        let img = new Image();
+        let canvas = document.getElementById('memeCanvas');
+        let ctx = canvas.getContext('2d');
+        let editType = '';
+        let currentImageData = null;
+
+        function showAlert(message, isError = true) {
+            const alertDiv = document.getElementById(isError ? 'alert' : 'success');
+            const otherDiv = document.getElementById(isError ? 'success' : 'alert');
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+            otherDiv.style.display = 'none';
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function loadFromFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        drawMeme();
+                        showAlert('Image loaded successfully!', false);
+                    };
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                showAlert('Please select a file first!');
+            }
+        }
+
+        function loadFromUrl() {
+            let url = document.getElementById('imageUrl').value;
+            if (url) {
+                // Use a CORS proxy for external URLs
+                if (!url.startsWith('data:') && !url.includes('corsproxy')) {
+                    url = 'https://corsproxy.io/?' + encodeURIComponent(url);
+                }
+                
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    drawMeme();
+                    showAlert('Image loaded successfully!', false);
+                };
+                img.onerror = () => {
+                    showAlert('Error loading image. Try a different URL or upload a local file.');
+                };
+                img.src = url;
+            } else {
+                showAlert('Please enter an image URL!');
+            }
+        }
+
+        function drawMeme() {
+            if (!img.src) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            let topText = document.getElementById('topText').value;
+            let bottomText = document.getElementById('bottomText').value;
+            let topFontSize = document.getElementById('topFontSize').value;
+            let bottomFontSize = document.getElementById('bottomFontSize').value;
+            let fontFamily = document.getElementById('fontFamily').value;
+            let topTextColor = document.getElementById('topTextColor').value;
+            let topOutlineColor = document.getElementById('topOutlineColor').value;
+            let bottomTextColor = document.getElementById('bottomTextColor').value;
+            let bottomOutlineColor = document.getElementById('bottomOutlineColor').value;
+            let topX = parseInt(document.getElementById('topX').value);
+            let topY = parseInt(document.getElementById('topY').value);
+            let bottomX = parseInt(document.getElementById('bottomX').value);
+            let bottomY = parseInt(document.getElementById('bottomY').value);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // Top text
+            if (topText) {
+                ctx.font = `bold ${topFontSize}px ${fontFamily}`;
+                ctx.fillStyle = topTextColor;
+                ctx.strokeStyle = topOutlineColor;
+                ctx.lineWidth = Math.max(2, topFontSize / 15);
+                let x = (canvas.width / 2) + topX;
+                let y = topY + 10;
+                
+                ctx.strokeText(topText, x, y);
+                ctx.fillText(topText, x, y);
+            }
+
+            // Bottom text
+            if (bottomText) {
+                ctx.font = `bold ${bottomFontSize}px ${fontFamily}`;
+                ctx.fillStyle = bottomTextColor;
+                ctx.strokeStyle = bottomOutlineColor;
+                ctx.lineWidth = Math.max(2, bottomFontSize / 15);
+                let x = (canvas.width / 2) + bottomX;
+                let y = canvas.height - parseInt(bottomFontSize) - 10 + bottomY;
+                
+                ctx.strokeText(bottomText, x, y);
+                ctx.fillText(bottomText, x, y);
+            }
+
+            // Store current image data
+            currentImageData = canvas.toDataURL('image/png');
+        }
+
+        // Dragging functionality
+        let dragging = false, dragType = '';
+        canvas.addEventListener('mousedown', (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            if (y < 100) { dragging = true; dragType = 'top'; }
+            else if (y > canvas.height - 100) { dragging = true; dragType = 'bottom'; }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (dragging) {
+                let rect = canvas.getBoundingClientRect();
+                let x = e.clientX - rect.left - (canvas.width / 2);
+                let y = dragType === 'top' ? e.clientY - rect.top : e.clientY - rect.top - canvas.height + 100;
+                if (dragType === 'top') {
+                    document.getElementById('topX').value = x;
+                    document.getElementById('topY').value = y;
+                } else {
+                    document.getElementById('bottomX').value = x;
+                    document.getElementById('bottomY').value = y;
+                }
+                drawMeme();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => dragging = false);
+
+        // Double-click editing
+        canvas.addEventListener('dblclick', (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            if (y < 100) editType = 'top';
+            else if (y > canvas.height - 100) editType = 'bottom';
+            else return;
+
+            let textarea = document.createElement('textarea');
+            let fontSize = editType === 'top' ? document.getElementById('topFontSize').value : document.getElementById('bottomFontSize').value;
+            let fontFamily = document.getElementById('fontFamily').value;
+            let textColor = editType === 'top' ? document.getElementById('topTextColor').value : document.getElementById('bottomTextColor').value;
+            let textValue = editType === 'top' ? document.getElementById('topText').value : document.getElementById('bottomText').value;
+            
+            textarea.style.position = 'absolute';
+            textarea.style.left = `${rect.left + x - 100}px`;
+            textarea.style.top = `${rect.top + y - 20}px`;
+            textarea.style.fontSize = `${fontSize}px`;
+            textarea.style.fontFamily = fontFamily;
+            textarea.style.color = textColor;
+            textarea.style.width = '200px';
+            textarea.style.height = `${fontSize * 1.5}px`;
+            textarea.style.textAlign = 'center';
+            textarea.style.border = '2px solid #007bff';
+            textarea.style.borderRadius = '5px';
+            textarea.style.outline = 'none';
+            textarea.style.zIndex = '1000';
+            textarea.value = textValue;
+            
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            textarea.addEventListener('blur', () => {
+                if (editType === 'top') document.getElementById('topText').value = textarea.value;
+                else document.getElementById('bottomText').value = textarea.value;
+                drawMeme();
+                textarea.remove();
+                editType = '';
+            });
+            
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') textarea.blur();
+            });
+        });
+
+        // AI Suggestion (simplified)
+        async function suggestText() {
+            if (!img.src) return showAlert('Please load an image first!');
+            showAlert('AI suggestions temporarily unavailable. Please add your own text!', false);
+        }
+
+        // NEW DOWNLOAD METHODS
+        function generateDownloadImage() {
+            if (!img.src) {
+                showAlert('Please load an image first!');
+                return;
+            }
+
+            try {
+                // Create a clean canvas for download
+                const downloadCanvas = document.createElement('canvas');
+                const downloadCtx = downloadCanvas.getContext('2d');
+                downloadCanvas.width = canvas.width;
+                downloadCanvas.height = canvas.height;
+                
+                // Redraw everything on the clean canvas
+                downloadCtx.drawImage(img, 0, 0);
+                
+                // Redraw text
+                let topText = document.getElementById('topText').value;
+                let bottomText = document.getElementById('bottomText').value;
+                let topFontSize = document.getElementById('topFontSize').value;
+                let bottomFontSize = document.getElementById('bottomFontSize').value;
+                let fontFamily = document.getElementById('fontFamily').value;
+                let topTextColor = document.getElementById('topTextColor').value;
+                let topOutlineColor = document.getElementById('topOutlineColor').value;
+                let bottomTextColor = document.getElementById('bottomTextColor').value;
+                let bottomOutlineColor = document.getElementById('bottomOutlineColor').value;
+                let topX = parseInt(document.getElementById('topX').value);
+                let topY = parseInt(document.getElementById('topY').value);
+                let bottomX = parseInt(document.getElementById('bottomX').value);
+                let bottomY = parseInt(document.getElementById('bottomY').value);
+
+                downloadCtx.textAlign = 'center';
+                downloadCtx.textBaseline = 'top';
+
+                // Top text
+                if (topText) {
+                    downloadCtx.font = `bold ${topFontSize}px ${fontFamily}`;
+                    downloadCtx.fillStyle = topTextColor;
+                    downloadCtx.strokeStyle = topOutlineColor;
+                    downloadCtx.lineWidth = Math.max(2, topFontSize / 15);
+                    let x = (downloadCanvas.width / 2) + topX;
+                    let y = topY + 10;
+                    
+                    downloadCtx.strokeText(topText, x, y);
+                    downloadCtx.fillText(topText, x, y);
+                }
+
+                // Bottom text
+                if (bottomText) {
+                    downloadCtx.font = `bold ${bottomFontSize}px ${fontFamily}`;
+                    downloadCtx.fillStyle = bottomTextColor;
+                    downloadCtx.strokeStyle = bottomOutlineColor;
+                    downloadCtx.lineWidth = Math.max(2, bottomFontSize / 15);
+                    let x = (downloadCanvas.width / 2) + bottomX;
+                    let y = downloadCanvas.height - parseInt(bottomFontSize) - 10 + bottomY;
+                    
+                    downloadCtx.strokeText(bottomText, x, y);
+                    downloadCtx.fillText(bottomText, x, y);
+                }
+
+                // Convert to image and show
+                const dataURL = downloadCanvas.toDataURL('image/png');
+                const previewImg = document.getElementById('downloadPreview');
+                previewImg.src = dataURL;
+                previewImg.style.display = 'block';
+                
+                currentImageData = dataURL;
+                showAlert('✅ Download image generated! Right-click the image above and select "Save Image As..." or use the Force Download button.', false);
+                
+            } catch (error) {
+                showAlert('Error generating download image: ' + error.message);
+                console.error('Download error:', error);
+            }
+        }
+
+        function forceDownload() {
+            if (!currentImageData) {
+                showAlert('Please generate download image first!');
+                return;
+            }
+
+            try {
+                // Create a download link
+                const link = document.createElement('a');
+                link.href = currentImageData;
+                link.download = 'meme.png';
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showAlert('Download initiated! Check your downloads folder.', false);
+            } catch (error) {
+                showAlert('Force download failed. Please right-click the image above and select "Save Image As..."');
+            }
+        }
+
+        function openFullscreen() {
+            if (!currentImageData) {
+                showAlert('Please generate download image first!');
+                return;
+            }
+
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Your Meme</title>
+                        <style>
+                            body { 
+                                margin: 0; 
+                                padding: 20px; 
+                                background: #f0f0f0; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                font-family: Arial, sans-serif;
+                            }
+                            img { 
+                                max-width: 90vw; 
+                                max-height: 80vh; 
+                                border-radius: 8px; 
+                                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                                margin-bottom: 20px;
+                            }
+                            .instructions {
+                                background: white;
+                                padding: 15px;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                                max-width: 600px;
+                                text-align: center;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${currentImageData}" alt="Your Meme">
+                        <div class="instructions">
+                            <h3>🎉 Your Meme is Ready!</h3>
+                            <p><strong>To Save:</strong> Right-click the image above and select "Save Image As..."</p>
+                            <p><strong>Mobile Users:</strong> Long press the image and select "Save Image" or "Download Image"</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+        }
+    </script>
+</body>
+</html>
