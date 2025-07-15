@@ -44,3 +44,10 @@ Create hilarious, viral memes from any image — in seconds.
 ---
 
 Made with ❤️ by [@Jvshah124](https://x.com/Jvshah124)
+
+
+MIT License
+
+Copyright (c) 2025 Jvshah124
+
+Permission is hereby granted, free of charge, to any person obtaining a copy...
